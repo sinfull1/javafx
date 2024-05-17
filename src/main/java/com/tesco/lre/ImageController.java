@@ -17,7 +17,7 @@ public class ImageController {
 
     @GetMapping("/generate")
     public String generateImage() throws IOException, InterruptedException {
-        TaskQueue.taskQueue.add("C:\\Users\\micro\\IdeaProjects\\lre\\src\\main\\resources\\ticket"+random.nextInt(1,5)+".html");
+        TaskQueue.taskQueue.add("ticket.html");
         return "Completed";
     }
 

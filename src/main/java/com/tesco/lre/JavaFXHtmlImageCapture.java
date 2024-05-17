@@ -11,10 +11,13 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.ResourceUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +30,7 @@ public class JavaFXHtmlImageCapture extends Application {
     private static WebView webView = null;
     private static Stage stage = null;
     private static boolean reloaded;
-    ExecutorService executionService = Executors.newVirtualThreadPerTaskExecutor();
+  //  ExecutorService executionService = Executors.newVirtualThreadPerTaskExecutor();
     public static ConcurrentLinkedDeque<Future<Boolean>> futureList = new ConcurrentLinkedDeque<>();
 
     static CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -35,35 +38,34 @@ public class JavaFXHtmlImageCapture extends Application {
     private ChangeListener<Worker.State> stateListener = (ov, oldState, newState) -> {
 
         if (newState == Worker.State.SUCCEEDED) {
-            if (reloaded) {
                 SnapshotParameters params = new SnapshotParameters();
                 // Set the background color to transparent
                 params.setFill(javafx.scene.paint.Color.TRANSPARENT);
-                params.setTransform(javafx.scene.transform.Transform.scale(1, 1));
+                params.setTransform(javafx.scene.transform.Transform.scale(2, 2));
                 // Take a snapshot of the WebView
                 WritableImage snapshot = webView.snapshot(params, null);
                 BufferedImage capture = SwingFXUtils.fromFXImage(snapshot, null);
                 log.info("Captured");
                 try {
-                    ImageIO.write(capture, "png", new File("C:\\Users\\micro\\IdeaProjects\\lre\\src\\main\\resources\\output"+ UUID.randomUUID().toString()+".png"));
+                    File filename =  File.createTempFile("output", UUID.randomUUID() +".png");
+                    log.info(filename.toURI().toString());
+                    ImageIO.write(capture, "png", filename);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 log.info("Image written");
                 stage.hide();
                 countDownLatch.countDown();
-            } else {
-                reloaded = true;
-                webView.getEngine().reload();
             }
-        }
+
     };
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage) throws IOException {
         stage = primaryStage;
-        primaryStage.setScene(new Scene(webView = new WebView()));
+        primaryStage.setScene(new Scene(webView = new WebView(), 600, 200));
         Worker<Void> worker = webView.getEngine().getLoadWorker();
+        webView.getEngine().load(new File("/usr/lib/ticket.html").toURI().toString());
         worker.stateProperty().addListener(stateListener);
         Platform.setImplicitExit(false);
         log.info("started");
@@ -78,10 +80,9 @@ public class JavaFXHtmlImageCapture extends Application {
                 log.info("found");
                 String fileName  =  TaskQueue.taskQueue.poll();
                 Platform.runLater(() -> {
-                    reloaded = false;
                     stage.show(); // JDK-8087569: will not capture without showing stage
                     stage.toBack();
-                    webView.getEngine().load(new File(fileName).toURI().toString());
+                    webView.getEngine().reload();
                 });
                 countDownLatch.await();
             } else{
