@@ -5,7 +5,9 @@ rm /tmp/.X99-lock #needed when docker container is restarted
 Xvfb :99 -screen 0 640x480x8  +extension GLX +render -noreset &
 
 # Run the JavaFX application
-java -Dprism.order=sw -Djavafx.verbose=true --module-path /usr/lib/javafx-sdk-22/lib/ \
+java -Dprism.order=sw -Djavafx.verbose=true \
+     -Djava.library.path=/opt/javafx-sdk-21/lib  \
+     --module-path /opt/javafx-sdk-21/lib \
     --add-modules javafx.controls,javafx.fxml,javafx.graphics,javafx.web \
     --add-reads javafx.graphics=ALL-UNNAMED \
     --add-exports javafx.graphics/com.sun.javafx.sg.prism=ALL-UNNAMED \
